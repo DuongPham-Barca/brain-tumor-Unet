@@ -1,0 +1,7 @@
+env/
+*.pt
+*.pth
+datasets/
+__pycache__/
+.vscode/
+kaggle_3m/
