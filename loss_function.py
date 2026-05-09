@@ -14,4 +14,4 @@ def dice_loss(pred, target, smooth=1e-6):
 bce = nn.BCEWithLogitsLoss()
 
 def combined_loss(pred, target):
-    return  bce(pred, target) + dice_loss(pred, target)
+    return bce(pred, target) + dice_loss(pred, target)

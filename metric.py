@@ -9,6 +9,7 @@ def dice_coef(pred, target, threshold=0.5):
 
     return (2 * intersection) / (union + 1e-6)
 
+
 def iou_coef(pred, target, threshold=0.5):
     pred = torch.sigmoid(pred)
     pred = (pred > threshold).float()
@@ -17,4 +18,3 @@ def iou_coef(pred, target, threshold=0.5):
     union = pred.sum() + target.sum() - intersection
 
     return intersection / (union + 1e-6)
-

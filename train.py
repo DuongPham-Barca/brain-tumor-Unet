@@ -68,15 +68,35 @@ def train(args):
         ToTensorV2(),
     ])
 
+    train_image_paths = sorted([
+        os.path.join(args.data_path_train, "images", f)
+        for f in os.listdir(os.path.join(args.data_path_train, "images"))
+    ])
+
+    train_mask_paths = sorted([
+        os.path.join(args.data_path_train, "masks", f)
+        for f in os.listdir(os.path.join(args.data_path_train, "masks"))
+    ])
+
+    val_image_paths = sorted([
+        os.path.join(args.data_path_val, "images", f)
+        for f in os.listdir(os.path.join(args.data_path_val, "images"))
+    ])
+
+    val_mask_paths = sorted([
+        os.path.join(args.data_path_val, "masks", f)
+        for f in os.listdir(os.path.join(args.data_path_val, "masks"))
+    ])
+
     train_dataset = BrainTumorDataset(
-        image_dir=args.data_path_train + "/images",
-        mask_dir=args.data_path_train + "/masks",
+        image_paths=train_image_paths,
+        mask_paths=train_mask_paths,
         transform=train_transform
     )
 
     val_dataset = BrainTumorDataset(
-        image_dir=args.data_path_val + "/images",
-        mask_dir=args.data_path_val + "/masks",
+        image_paths=val_image_paths,
+        mask_paths=val_mask_paths,
         transform=val_transform
     )
 
@@ -84,10 +104,13 @@ def train(args):
     val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, pin_memory=True)
 
     
-    model = UNet(n_channels=3, n_classes=1).to(device)
+    model = UNet().to(device)
 
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', patience=5, factor=0.5 ,min_lr=1e-6
+    )
 
     if not os.path.isdir(args.log_folder):
         os.makedirs(args.log_folder)
@@ -98,6 +121,7 @@ def train(args):
     num_iter_per_epoch = len(train_loader)
     best_val_loss = float("inf")
     start_epoch = 0
+    patience = 10
 
     checkpoint_path = os.path.join(args.checkpoint_folder, "last_model.pt")
     if os.path.exists(checkpoint_path):
@@ -120,30 +144,37 @@ def train(args):
         progress_bar = tqdm(train_loader, colour='green')
         # progress_bar.set_description("Epoch {}/{}. Loss  {:0.4f}".format(epoch + 1, args.nums_epoch, mean_loss))
         progress_bar.set_description("Epoch {}/{}".format(epoch + 1, args.nums_epoch))
-        train_loss = []
-        train_dice = []
-        train_iou = []
+        train_loss = 0
+        train_dice = 0
+        train_iou = 0
         for iter, (imgs, masks) in enumerate(progress_bar):
             imgs = imgs.to(device)
             masks = masks.to(device)
             #forward
             preds = model(imgs)
-            final_losses = combined_loss(preds, masks)
+            loss = combined_loss(preds, masks)
 
 
 
             #backward
             optimizer.zero_grad()
-            final_losses.backward()
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
 
-            train_loss.append(final_losses.item())
-            train_dice.append(dice_coef(preds, masks).item())
-            train_iou.append(iou_coef(preds, masks).item())
-            progress_bar.set_description("Epoch {}/{}. Loss  {:0.4f}".format(epoch + 1, args.nums_epoch, np.mean(train_loss)))
+            train_loss += loss.item()
+            train_dice += dice_coef(preds, masks).item()
+            train_iou += iou_coef(preds, masks).item()
+
+        
+            progress_bar.set_description("Epoch {}/{}. Loss  {:0.4f}".format(epoch + 1, args.nums_epoch, train_loss / (iter + 1)))
             writer.add_scalar("loss/train", np.mean(train_loss), epoch * num_iter_per_epoch + iter)
             writer.add_scalar("dice_score/train", np.mean(train_dice), epoch * num_iter_per_epoch + iter)
             writer.add_scalar("iou_score/train", np.mean(train_iou), epoch * num_iter_per_epoch + iter)
+
+        train_loss /= len(train_loader)
+        train_dice /= len(train_loader)
+        train_iou /= len(train_loader)
 
         model.eval()
         progress_bar = tqdm(val_loader, colour='blue')
@@ -167,6 +198,7 @@ def train(args):
         val_dice /= len(val_loader)
         val_iou /= len(val_loader)
         
+        scheduler.step(val_loss)
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
