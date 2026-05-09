@@ -9,14 +9,13 @@ from albumentations.pytorch import ToTensorV2
 
 image_path = "datasets/test/images/TCGA_CS_4941_19960909_15.tif"
 mask_path = "datasets/test/masks/TCGA_CS_4941_19960909_15_mask.tif"
-model_path = "best_models.pt"
+model_path = "weights/best_model.pt"
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
 model = UNet(n_channels=3, n_classes=1).to(device)
-model.load_state_dict(torch.load(model_path, map_location=device))
+model.load_state_dict(torch.load(model_path, map_location=device), strict=False)
 model.eval()
 
 
