@@ -61,8 +61,9 @@
 
             <div class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
               <div class="glass-card rounded-[2rem] p-6 shadow-xl shadow-slate-900/40 border-white/10">
-                {% if not (original_img and overlayed_img) %}
-                <form id="uploadForm" action="/" method="POST" enctype="multipart/form-data">
+                {% if not original_img or not overlayed_img %}
+                <form id="uploadForm" action="{% url 'index' %}" method="POST" enctype="multipart/form-data">
+                  {% csrf_token %}
                   <div class="mb-6 text-left">
                     <h2 class="text-2xl font-semibold text-white">Upload MRI Scan</h2>
                     <p class="mt-2 text-sm text-slate-300/80">Supported formats: PNG, JPG. For best results, use a clear brain MRI image.</p>
@@ -163,7 +164,8 @@
               {% endif %}
 
               {% if not clinical_report %}
-              <form method="POST" action="/generate_report" onsubmit="showReportLoading()" class="text-center">
+              <form method="POST" action="{% url 'generate_report' %}" onsubmit="showReportLoading()" class="text-center">
+                {% csrf_token %}
                 <input type="hidden" name="image_id" value="{{ image_id }}" />
                 <button type="submit" class="inline-flex w-full items-center justify-center rounded-full bg-amber-500 px-6 py-3 text-base font-semibold text-slate-950 transition hover:bg-amber-400">
                   📝 Generate Clinical Report
@@ -178,12 +180,12 @@
                   {{ clinical_report }}
                 </div>
               </section>
-              <a href="/download_report/{{ image_id }}" class="mt-5 inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-base font-semibold text-slate-950 transition hover:bg-emerald-400">
+              <a href="{% url 'download_report' image_id %}" class="mt-5 inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-base font-semibold text-slate-950 transition hover:bg-emerald-400">
                 📄 Download Report
               </a>
               {% endif %}
 
-              <a href="/" class="mt-4 inline-flex w-full items-center justify-center rounded-full bg-slate-700 px-6 py-3 text-base font-semibold text-white transition hover:bg-slate-600">
+              <a href="{% url 'index' %}" class="mt-4 inline-flex w-full items-center justify-center rounded-full bg-slate-700 px-6 py-3 text-base font-semibold text-white transition hover:bg-slate-600">
                 🔄 Analyze Another Scan
               </a>
             </div>
@@ -204,7 +206,7 @@
                     <p><span class="font-semibold text-slate-100">Severity:</span> {{ entry.severity }}</p>
                     <p><span class="font-semibold text-slate-100">Resolution:</span> {{ entry.resolution }}</p>
                   </div>
-                  <a href="/download_report/{{ entry.image_id }}" class="mt-4 inline-flex w-full items-center justify-center rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400">
+                  <a href="{% url 'download_report' entry.image_id %}" class="mt-4 inline-flex w-full items-center justify-center rounded-full bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400">
                     Download Report
                   </a>
                 </div>
