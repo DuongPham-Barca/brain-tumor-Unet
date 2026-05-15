@@ -3,6 +3,7 @@ albucore==0.0.24
 albumentations==2.0.8
 annotated-types==0.7.0
 colorama==0.4.6
+Django==5.2.1
 filelock==3.25.2
 fsspec==2026.2.0
 grpcio==1.80.0

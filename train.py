@@ -1,3 +1,4 @@
+from csv import writer
 import os
 import torch
 from torch.utils.data import DataLoader
@@ -12,7 +13,7 @@ from argparse import ArgumentParser
 from unet import UNet
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-from loss_function import combined_loss, dice_loss
+from loss_function import combined_loss
 from metric import dice_coef , iou_coef
 
 
@@ -58,13 +59,13 @@ def train(args):
         A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.3),
         A.GaussNoise(std_range=(0.01, 0.05), p=0.15),
         
-        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        A.Normalize(mean=(0.485, ), std=(0.229,)),
         ToTensorV2(),
     ])
 
     val_transform = A.Compose([
         A.Resize(256, 256),
-        A.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+        A.Normalize(mean=(0.485, ), std=(0.229,)),
         ToTensorV2(),
     ])
 
@@ -168,9 +169,9 @@ def train(args):
 
         
             progress_bar.set_description("Epoch {}/{}. Loss  {:0.4f}".format(epoch + 1, args.nums_epoch, train_loss / (iter + 1)))
-            writer.add_scalar("loss/train", np.mean(train_loss), epoch * num_iter_per_epoch + iter)
-            writer.add_scalar("dice_score/train", np.mean(train_dice), epoch * num_iter_per_epoch + iter)
-            writer.add_scalar("iou_score/train", np.mean(train_iou), epoch * num_iter_per_epoch + iter)
+            writer.add_scalar("loss/train", train_loss / (iter + 1), epoch * num_iter_per_epoch + iter)
+            writer.add_scalar("dice_score/train", train_dice / (iter + 1), epoch * num_iter_per_epoch + iter)
+            writer.add_scalar("iou_score/train", train_iou / (iter + 1), epoch * num_iter_per_epoch + iter)
 
         train_loss /= len(train_loader)
         train_dice /= len(train_loader)
@@ -199,11 +200,19 @@ def train(args):
         val_iou /= len(val_loader)
         
         scheduler.step(val_loss)
+        patience_counter = 0
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(model.state_dict(), args.best_model_path)
             print("Saved best model!")
+            patience_counter = 0
+        else:
+            patience_counter += 1
+           
+        if patience_counter >= patience:
+            print(f"Early stopping at epoch {epoch + 1} due to no improvement in validation loss for {patience} consecutive epochs.")
+            break
 
         print(f"Dice: {val_dice:.4f} | IoU: {val_iou:.4f}")
         writer.add_scalar("loss/val", val_loss, epoch)

@@ -1,7 +1,63 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*$py.class
+datasets
+
+# Virtual environments
 env/
+venv/
+.venv/
+ENV/
+
+# Python packaging / build
+build/
+dist/
+*.egg-info/
+
+# PyTorch / model artifacts
 *.pt
 *.pth
-datasets/
-__pycache__/
+trained_models/
+best_model.pt
+last_model.pt
+
+# Django
+django_site/db.sqlite3
+media/
+staticfiles/
+
+# Local settings / secrets
+.env
+*.env
+local_settings.py
+
+# Logs
+*.log
+
+# Test / coverage
+.pytest_cache/
+coverage/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# TensorBoard / runs
+tensorboard/
+runs/
+events.out.tfevents*
+
+# IDEs & editors
 .vscode/
-kaggle_3m/
+.idea/
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# MyPy / linters
+.mypy_cache/
+.pyre/

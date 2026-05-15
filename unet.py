@@ -23,7 +23,7 @@ class Encoder(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.conv1 = ConvBlock(3, 64)
+        self.conv1 = ConvBlock(1, 64)
         self.pool1 = nn.MaxPool2d(2)
 
         self.conv2 = ConvBlock(64, 128)
